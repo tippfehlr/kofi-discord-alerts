@@ -33,57 +33,55 @@
     Made with <3 from Greece
 */
 
-
-//Calling out modules
 const express = require("express");
 const app = express();
-const http = require('http');
-const bodyParser = require('body-parser');
-const { Webhook, MessageBuilder } = require('discord-webhook-node');
-const config = require('./config.json');
+const http = require("http");
+const bodyParser = require("body-parser");
+const { Webhook, MessageBuilder } = require("discord-webhook-node");
 
-if(!config) {
-    console.error('Config file not found.');
-    process.exit(1);
-};
-if(!config.webhook_link || !config.server_port) {
-    console.error('Config file missing items. Please regenerate');
-    process.exit(1);
-};
+const webhook_link = process.env.WEBHOOK_LINK;
+const port = Number(process.env.PORT) || 4852;
 
-const webhook = new Webhook(config.webhook_link); //Declaring the Webhook here
+if (!webhook_link) {
+  console.error("env variable WEBHOOK_LINK not set");
+  process.exit(1);
+}
+
+const webhook = new Webhook(webhook_link);
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
-app.post('/post', async function(req, res) {
-    const data = req.body.data;
-    if (!data) return;
+app.post("/", async function (req, res) {
+  const data = req.body.data;
+  if (!data) return;
 
-    try {
-        const obj = JSON.parse(data);
-        const embed = new MessageBuilder();
-        embed.setTitle('New Ko-Fi Supporter!');
-        embed.setColor(2730976);
-        embed.addField(`From`, `${obj.from_name}`, true);
-        embed.addField(`Amount`, `${obj.amount}`, true);
-        embed.addField(`Message`, `${obj.message}`);
-        embed.setTimestamp();
-        await webhook.send(embed);
-    } catch (err) {
-        console.error(err);
-        return res.json({success: false, error: err});
-    }
-    return res.json({success: true});
+  try {
+    const obj = JSON.parse(data);
+    const embed = new MessageBuilder();
+    embed.setTitle("New Ko-Fi Supporter!");
+    embed.setColor(2730976);
+    embed.addField(`From`, `${obj.from_name}`, true);
+    embed.addField(`Amount`, `${obj.amount}`, true);
+    embed.addField(`Message`, `${obj.message}`);
+    embed.setTimestamp();
+    await webhook.send(embed);
+  } catch (err) {
+    console.error(err);
+    return res.json({ success: false, error: err });
+  }
+  return res.json({ success: true });
 });
 
+app.use("/", async function (req, res) {
+  res.type("text/plain").send(`Send Ko-fi webhooks to /
+Configure Ko-Fi webhooks here: https://ko-fi.com/manage/webhooks
 
-app.use('/', async function(req, res) { //Handiling requests to the main endpoint
-    res.json({message: "Ko-Fi Server is online!"});
-    return;
+Source code: https://github.com/tippfehlr/kofi-discord-alerts`);
+  return;
 });
 
-const httpServer = http.createServer(app); //Setting up the server
-httpServer.listen(config.server_port, function() {
-  console.log(`Ko-Fi Server online on port ${config.server_port}`);
+const httpServer = http.createServer(app);
+httpServer.listen(port, function () {
+  console.log(`Ko-Fi Server online on port ${port}`);
 });
